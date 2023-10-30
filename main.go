@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -26,17 +25,23 @@ import (
 	"foodx-server/repository/cart"
 	"foodx-server/controller/cartcontroller"
 	"foodx-server/handler/carthandler"
+
+	"foodx-server/utils/loggerutil"
 )
 
 func main() {
 	router := gin.Default()
 
+	logger := loggerutil.NewLogger()
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Log.Error("Error loading .env file")
 	}
-
+	
 	database.ConnectDB()
+
+	logger.Log.Info("Application Connected to database")
 
 	// Migrating DB models
 	db := database.GetDB()

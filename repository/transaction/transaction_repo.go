@@ -3,7 +3,11 @@ package transaction
 import (
 	"gorm.io/gorm"
 	"foodx-server/domain"
+
+    "foodx-server/utils/loggerutil"
 )
+
+var logger = loggerutil.NewLogger()
 
 type TransactionRepository struct {
 	db *gorm.DB
@@ -19,6 +23,7 @@ func (transaction_repo *TransactionRepository) GetTransactionsOfUser(userID any)
     db := transaction_repo.db
 	var transactions []domain.Transaction
 	if err := db.Where("user_id = ?", userID).Find(&transactions).Error; err != nil{
+        logger.Log.Error(err)
 		return nil, err
 	}
 	return &transactions, nil
@@ -33,6 +38,7 @@ func (transaction_repo *TransactionRepository) CreateTransaction(userID any, tot
     }
     
     if err := db.Create(&transaction).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -44,11 +50,13 @@ func (transaction_repo *TransactionRepository) UpdateTransaction(transactionID a
 
     var existingTransaction domain.Transaction
     if err := db.First(&existingTransaction, transactionID).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
     existingTransaction.Total = total
     if err := db.Save(&existingTransaction).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 

@@ -3,7 +3,11 @@ package food
 import (
 	"gorm.io/gorm"
 	"foodx-server/domain"
+
+    "foodx-server/utils/loggerutil"
 )
+
+var logger = loggerutil.NewLogger()
 
 type FoodRepository struct {
 	db *gorm.DB
@@ -18,6 +22,7 @@ func NewFoodRepository(db *gorm.DB) *FoodRepository {
 func (food_repo *FoodRepository) CreateFoodItem(foodItem domain.FoodItem)(*domain.FoodItem,error){
 	db := food_repo.db
     if err := db.Create(&foodItem).Error; err != nil{
+        logger.Log.Error(err)
         return nil,err
     }
 	return &foodItem, nil
@@ -28,6 +33,7 @@ func (food_repo *FoodRepository) GetFoodItemByID(foodID any)(*domain.FoodItem,er
 	var foodItem domain.FoodItem
 
     if err := db.First(&foodItem, foodID).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 	return &foodItem, nil
@@ -37,6 +43,7 @@ func (food_repo *FoodRepository) UpdateFoodItem(foodID any,updatedFoodItem domai
     db := food_repo.db
 	foodItem, err := food_repo.GetFoodItemByID(foodID)
     if err != nil {
+        logger.Log.Error(err)
         return nil,err
     }
 
@@ -47,6 +54,7 @@ func (food_repo *FoodRepository) UpdateFoodItem(foodID any,updatedFoodItem domai
     foodItem.ImageUrl = updatedFoodItem.ImageUrl
 
     if err:=db.Save(&foodItem).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -57,6 +65,7 @@ func (food_repo *FoodRepository) DeleteFoodItem(foodID any)(error){
     db := food_repo.db
     var foodItem domain.FoodItem
     if err := db.Delete(&foodItem, foodID).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
     return nil
@@ -67,6 +76,7 @@ func (food_repo *FoodRepository) GetMenuOfRestaurent(restaurentID any)(*[]domain
     var foodItems []domain.FoodItem
 
     if err := db.Where("restaurant_id = ?", restaurentID).Find(&foodItems).Error; err != nil{
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -77,6 +87,7 @@ func (food_repo *FoodRepository) AddFoodToCart(foodID any, userID any)(error){
     db := food_repo.db
     var foodItem domain.FoodItem
     if err := db.First(&foodItem, foodID).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
 
@@ -89,12 +100,14 @@ func (food_repo *FoodRepository) AddFoodToCart(foodID any, userID any)(error){
             Price:     foodItem.Price,
         }
         if err := db.Create(&newItem).Error; err != nil {
+            logger.Log.Error(err)
             return err
         }
     } else {
         cartItem.Quantity++
         cartItem.Price += foodItem.Price
         if err := db.Save(&cartItem).Error; err != nil {
+            logger.Log.Error(err)
             return err
         }
     }
@@ -105,11 +118,13 @@ func (food_repo *FoodRepository) RemoveFoodFromCart(foodID any, userID any)(erro
     db := food_repo.db
     var foodItem domain.FoodItem
     if err := db.First(&foodItem, foodID).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
 
     var cartItem domain.CartItem
     if err := db.Where("user_id = ? AND food_item_id = ? AND is_checked_out = ?", userID, foodItem.ID, false).First(&cartItem).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
 
@@ -117,10 +132,12 @@ func (food_repo *FoodRepository) RemoveFoodFromCart(foodID any, userID any)(erro
     cartItem.Price -= foodItem.Price
     if cartItem.Quantity == 0 {
         if err := db.Delete(&cartItem).Error; err != nil {
+            logger.Log.Error(err)
             return err
         }
     } else {
         if err := db.Save(&cartItem).Error; err != nil {
+            logger.Log.Error(err)
             return err
         }
     }

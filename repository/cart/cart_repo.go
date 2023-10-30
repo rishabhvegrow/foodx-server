@@ -5,7 +5,11 @@ import (
 
 	"gorm.io/gorm"
 	"foodx-server/domain"
+
+    "foodx-server/utils/loggerutil"
 )
+
+var logger = loggerutil.NewLogger()
 
 type CartRepository struct {
 	db *gorm.DB
@@ -21,6 +25,7 @@ func (cart_repo *CartRepository) GetCartItemByID(itemID any)(*domain.CartItem, e
     db := cart_repo.db
 	var cartItem domain.CartItem
 	if err := db.Where("id = ?", itemID).First(&cartItem).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -31,6 +36,7 @@ func (cart_repo *CartRepository) GetCartItemByID(itemID any)(*domain.CartItem, e
 func (cart_repo *CartRepository) RemoveCartItemByID(id any)(error) {
     db := cart_repo.db
 	if err := db.Where("id = ?", id).Delete(&domain.CartItem{}).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
     return nil
@@ -39,6 +45,7 @@ func (cart_repo *CartRepository) RemoveCartItemByID(id any)(error) {
 func (cart_repo *CartRepository) CreateCartItem(cartItem domain.CartItem)(*domain.CartItem, error){
     db := cart_repo.db
     if err := db.Create(&cartItem).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 	return &cartItem, nil
@@ -53,7 +60,8 @@ func (cart_repo *CartRepository) GetCartItemsOfAUser(userID any, isChecked bool)
         Preload("FoodItem").
         Where("user_id = ? AND is_checked_out = ?", userID, isChecked).
         Find(&cartItems).Error; err != nil {
-        return nil, err
+            logger.Log.Error(err)
+            return nil, err
     }
 
 	return &cartItems, nil
@@ -69,24 +77,28 @@ func (cart_repo *CartRepository) CheckoutCart(userID any)(*domain.Transaction, e
 
 	if err != nil || len(*cartItems) == 0 {
         tx.Rollback()
+        logger.Log.Error(err)
         return nil,err
 	}
 
     parsedUserIDStr, ok := userID.(string)
     if !ok {
         tx.Rollback()
+        logger.Log.Error(err)
         return nil,err
     }
 
     parsedUserID, err := strconv.ParseUint(parsedUserIDStr, 10, 64)
     if err != nil {
         tx.Rollback()
+        logger.Log.Error(err)
         return nil,err
     }
 
 	transaction := domain.Transaction{UserID: uint(parsedUserID), Total: 0}
 	if err := tx.Create(&transaction).Error; err != nil {
         tx.Rollback()
+        logger.Log.Error(err)
         return nil,err
     }
 
@@ -98,6 +110,7 @@ func (cart_repo *CartRepository) CheckoutCart(userID any)(*domain.Transaction, e
         item.TransactionID = transaction.ID
         if err := tx.Save(&item).Error; err != nil {
             tx.Rollback()
+            logger.Log.Error(err)
             return nil,err
         }
     }
@@ -106,6 +119,7 @@ func (cart_repo *CartRepository) CheckoutCart(userID any)(*domain.Transaction, e
     transaction.Total = float64(totalSum)
     if err := tx.Save(&transaction).Error; err != nil {
         tx.Rollback()
+        logger.Log.Error(err)
         return nil,err
     }
 

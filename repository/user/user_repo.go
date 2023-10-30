@@ -8,7 +8,11 @@ import (
 	"github.com/golang-jwt/jwt"
 
     "foodx-server/domain"
+
+    "foodx-server/utils/loggerutil"
 )
+
+var logger = loggerutil.NewLogger()
 
 var secret = os.Getenv("JWT_SECRET_KEY")
 var jwtSecretKey = []byte(secret)
@@ -28,6 +32,7 @@ func (user_repo *UserRepository) GetUsers()(*[]domain.User, error){
     db := user_repo.db
 	var users []domain.User
     if err := db.Find(&users).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 	return &users, nil
@@ -37,6 +42,7 @@ func (user_repo *UserRepository) GetUser(userID any)(*domain.User, error){
     db := user_repo.db
     var user domain.User
     if err := db.First(&user, userID).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -46,6 +52,7 @@ func (user_repo *UserRepository) GetUser(userID any)(*domain.User, error){
 func (user_repo *UserRepository) CraeteUser(user domain.User)(*domain.User, error){
     db := user_repo.db
     if err := db.Create(&user).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 	return &user, nil
@@ -55,6 +62,7 @@ func (user_repo *UserRepository) DeleteUser(userID any)(error){
     db := user_repo.db
 	var user domain.User
     if err:= db.Delete(&user, userID).Error; err != nil {
+        logger.Log.Error(err)
         return err
     }
 	return nil
@@ -64,11 +72,13 @@ func (user_repo *UserRepository) UserLogin(email string, password string) (*doma
     db := user_repo.db
     var user domain.User
     if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
     token, err := generateToken(user.ID)
     if err != nil {
+        logger.Log.Error(err)
         return nil, err
     }
 
@@ -90,6 +100,7 @@ func generateToken(userID uint) (string, error) {
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
     tokenString, err := token.SignedString(jwtSecretKey)
     if err != nil {
+        logger.Log.Error(err)
         return "", err
     }
 
